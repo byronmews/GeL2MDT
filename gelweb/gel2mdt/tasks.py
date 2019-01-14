@@ -273,7 +273,7 @@ def update_report_email():
 
     listupdates = ListUpdate.objects.filter(update_time__gte=date.today())
     if all(listupdates.values_list('success', flat=True)) and text_content:
-        subject, from_email, to = 'GeL2MDT Weekly Update Report', 'bioinformatics@gosh.nhs.uk', 'bioinformatics@gosh.nhs.uk'
+        subject, from_email, to = 'West London GeL2MDT Weekly Update Report', 'bioinformatics@gosh.nhs.uk', 'GELTeam@gosh.nhs.uk'
         msg = EmailMessage(subject, text_content, from_email, [to])
         try:
             msg.send()
@@ -298,7 +298,7 @@ def listupdate_email():
             bioinfo_content += f'{update.sample_type}\t{update.update_time}' \
                                f'\t{update.cases_added}\t{update.cases_updated}\t{update.error}\n'
     if send:
-        subject, from_email, to = 'GeL2MDT ListUpdate', 'bioinformatics@gosh.nhs.uk', \
+        subject, from_email, to = 'West London GeL2MDT ListUpdate', 'bioinformatics@gosh.nhs.uk', \
                                   'bioinformatics@gosh.nhs.uk'
         msg = EmailMessage(subject, bioinfo_content, from_email, [to])
         try:

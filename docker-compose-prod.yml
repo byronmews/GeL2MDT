@@ -8,7 +8,7 @@ services:
     restart: always
     image: nginx:latest
     ports:
-      - "8000:8000"
+      - "8001:8001"
     volumes:
       - ./Docker/nginx/conf.d:/etc/nginx/conf.d
       - ./gelweb/gelweb/static_files:/static
@@ -16,22 +16,22 @@ services:
       - web
       - redis
   web:
-    image: gel2mdt_web
+    image: wl_gel2mdt_web
     restart: always
     build:
       context: .
-    command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && cd /root/gel2mdt/gelweb && gunicorn gelweb.wsgi -b 0.0.0.0:8000"
+    command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && cd /root/gel2mdt/gelweb && gunicorn gelweb.wsgi -b 0.0.0.0:8001"
     volumes:
       - .:/root/gel2mdt/
       - ~/.vep:/root/.vep
-      - ~/gel2mdt_resources:/root/gel2mdt_cache
+      - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources:/root/gel2mdt_cache
     env_file:
-      - /etc/gel2mdt/credentials
+      - /etc/gel2mdt/credentials_wl
     depends_on:
       - db
       - redis
   jupyter:
-    image: gel2mdt_jupyter
+    image: wl_gel2mdt_jupyter
     build: .
     restart: always
     build:
@@ -39,8 +39,9 @@ services:
     command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && jupyter notebook --generate-config -y && cd /root/gel2mdt/gelweb && python manage.py shell_plus --notebook"
     volumes:
       - .:/root/gel2mdt/
+      - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources:/root/gel2mdt_cache
     env_file:
-      - /etc/gel2mdt/credentials
+      - /etc/gel2mdt/credentials_wl
     ports:
       - "8891:8888"
     depends_on:
@@ -52,12 +53,12 @@ services:
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=gel2mdt_db
+      - MYSQL_DATABASE=wl_gel2mdt
       - MYSQL_USER=paddy
     env_file:
-      - /etc/gel2mdt/credentials
+      - /etc/gel2mdt/credentials_wl
     volumes:
-      - ~/gel2mdt_resources/gel2mdt_db:/var/lib/mysql
+      - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources/gel2mdt_db:/var/lib/mysql
 #  db:
 #    image: postgres:10
 #    restart: always
@@ -71,20 +72,20 @@ services:
   celery:
     build: .
     restart: always
-    image: gel2mdt_celery
+    image: wl_gel2mdt_celery
     command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && cd /root/gel2mdt/gelweb && celery -A gelweb worker -l info"
     env_file:
       - /etc/gel2mdt/credentials
     volumes:
       - .:/root/gel2mdt/
       - ~/.vep:/root/.vep
-      - ~/gel2mdt_resources:/root/gel2mdt_cache
+      - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources/:/root/gel2mdt_cache
     depends_on:
       - db
       - redis
   celery-beat:
     build: .
-    image: gel2mdt_celery-beat
+    image: wl_gel2mdt_celery-beat
     restart: always
     command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && cd /root/gel2mdt/gelweb && rm -f celerybeat.pid && celery -A gelweb beat -l info"
     env_file:
@@ -92,17 +93,19 @@ services:
     volumes:
       - .:/root/gel2mdt/
       - ~/.vep:/root/.vep
-      - ~/gel2mdt_resources:/root/gel2mdt_cache
+      - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources/:/root/gel2mdt_cache
     depends_on:
       - db
       - redis
   flower:
     build: .
-    image: gel2mdt_flower
+    image: wl_gel2mdt_flower
     restart: always
     command: bash -c "cd /root/gel2mdt/gelweb && celery flower -A gelweb --broker=redis://redis:6379 --port=5550"
     ports:
       - "5550:5550"
+    volumes:
+      - .:/root/gel2mdt/
     depends_on:
       - db
       - redis

@@ -2,20 +2,20 @@ version: '3'
 
 services:
   web:
-    image: gel2mdt_web
+    image: wl_gel2mdt_web
     build:
       context: .
-    command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && cd /root/gel2mdt/gelweb && python manage.py runserver 0.0.0.0:8001"
+    command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && cd /root/gel2mdt/gelweb && python manage.py runserver 0.0.0.0:8002"
     ports:
-      - "8001:8001"
+      - "8002:8002"
     stdin_open: true
     tty: true
     env_file:
-      - /etc/gel2mdt/credentials
+      - /etc/gel2mdt/credentials_wl
     volumes:
       - .:/root/gel2mdt/
       - ~/.vep:/root/.vep
-      - ~/gel2mdt_resources:/root/gel2mdt_cache
+      - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources:/root/gel2mdt_cache
     depends_on:
       - db
   db:
@@ -23,14 +23,14 @@ services:
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=gel2mdt_db
+      - MYSQL_DATABASE=wl_gel2mdt
       - MYSQL_USER=paddy
     env_file:
-      - /etc/gel2mdt/credentials
+      - /etc/gel2mdt/credentials_wl
     volumes:
-      - ~/gel2mdt_resources/gel2mdt_db:/var/lib/mysql
+      - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources/gel2mdt_db:/var/lib/mysql
   jupyter:
-    image: gel2mdt_jupyter
+    image: wl_gel2mdt_jupyter
     build: .
     restart: always
     build:
@@ -39,9 +39,9 @@ services:
     volumes:
       - .:/root/gel2mdt/
     env_file:
-      - /etc/gel2mdt/credentials
+      - /etc/gel2mdt/credentials_wl
     ports:
-      - "8891:8888"
+      - "8892:8888"
     depends_on:
       - db
       - web
@@ -51,7 +51,7 @@ services:
     volumes:
       - /sessions
     ports:
-      - 8080:80
+      - 8082:80
     environment:
       - PMA_ARBITRARY=1
     depends_on:

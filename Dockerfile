@@ -45,7 +45,7 @@ RUN cpanm DBI
 WORKDIR /root
 RUN git clone https://github.com/Ensembl/ensembl-vep.git
 WORKDIR /root/ensembl-vep
-RUN perl INSTALL.pl --VERSION 92 --AUTO a -n
+RUN perl INSTALL.pl --VERSION 91 --AUTO a -n
 
 # Install GelReportModels
 RUN mkdir /gel

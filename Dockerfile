@@ -4,6 +4,9 @@ FROM python:3.6
 # Maintainer
 MAINTAINER Patrick Lombard<patrick.lombard@gosh.nhs.uk>
 
+ENV http_proxy=http://10.101.112.70:8080
+ENV https_proxy=http://10.101.112.70:8080
+
 # Install prequisites (last four entries added by me - PD)
 RUN apt-get update && apt-get -y install \
     libpq-dev \
@@ -42,7 +45,7 @@ RUN cpanm DBI
 WORKDIR /root
 RUN git clone https://github.com/Ensembl/ensembl-vep.git
 WORKDIR /root/ensembl-vep
-RUN perl INSTALL.pl --VERSION 92 --AUTO a -n
+RUN perl INSTALL.pl --VERSION 91 --AUTO a -n
 
 # Install GelReportModels
 RUN mkdir /gel

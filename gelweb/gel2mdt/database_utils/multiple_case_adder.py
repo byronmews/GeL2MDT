@@ -417,24 +417,54 @@ class MultipleCaseAdder(object):
             # Labkey lookup for all cases
             if not self.skip_demographics:
                 family_ids = []
+                family_ids_usable = []
                 participant_ids = []
+                participant_ids_usable = []
+
                 demographic_handler = DemographicsHandler(self.sample_type)
+
                 if self.sample_type == 'raredisease':
                     for case in cases:
                         family_ids.append(case.json["family_id"])
                         participant_ids.append(case.json["proband"])
                         for family_member in case.family_members:
                             participant_ids.append(family_member['gel_id'])
-                    demographics = demographic_handler.get_demographics(participant_ids)
-                    clinicians = demographic_handler.get_clinicians(family_ids)
-                    diagnosis = demographic_handler.get_diagnosis(participant_ids)
+
+                    # rd pids 115* (nt) and 120* (wl) & ca 215* (nt) 220* (wl). Few exceptions.
+                    # fyi, format of participant_id if no result recorded in LabKey=NR_XXXXXXXXX_1234567
+                    for participant_id in participant_ids:
+                        if participant_id.startswith("NR_"):
+                            pass # ignore
+                        else:
+                            participant_ids_usable.append(participant_id)
+
+                    for family_id in family_ids:
+                        if family_id.startswith("NR_"):
+                            pass # ignore
+                        else:
+                            family_ids_usable.append(family_id)
+
+                    demographics = demographic_handler.get_demographics(participant_ids_usable) # separate list at handler side
+                    clinicians = demographic_handler.get_clinicians(family_ids_usable)
+                    diagnosis = demographic_handler.get_diagnosis(participant_ids_usable)
+
+
                 elif self.sample_type == 'cancer':
                     for case in cases:
                         participant_ids.append(case.json["proband"])
                         for family_member in case.family_members:  # Shouldn't be any but just for futureproofing!
                             participant_ids.append(family_member['gel_id'])
-                    demographics = demographic_handler.get_demographics(participant_ids)
-                    clinicians = demographic_handler.get_clinicians(participant_ids)
+
+                    # format of participant_id if no result recorded in LabKey=NR_XXXXXXXXX_1234567
+                    for participant_id in participant_ids:
+                        if participant_id.startswith("NR_"):
+                            pass # ignore
+                        else: 
+                            participant_ids_usable.append(participant_id)
+
+                    demographics = demographic_handler.get_demographics(participant_ids_usable) # separate list at handler side
+                    clinicians = demographic_handler.get_clinicians(family_ids_usable)
+                    
                     diagnosis = None
 
                 for case in cases:

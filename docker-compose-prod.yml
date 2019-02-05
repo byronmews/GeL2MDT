@@ -23,7 +23,7 @@ services:
     command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && cd /root/gel2mdt/gelweb && gunicorn gelweb.wsgi -b 0.0.0.0:8001"
     volumes:
       - .:/root/gel2mdt/
-      - ~/.vep:/root/.vep
+      - - /home/genseqservadmin/.vep/:/root/.vep
       - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources:/root/gel2mdt_cache
     env_file:
       - /etc/gel2mdt/credentials_wl
@@ -78,7 +78,7 @@ services:
       - /etc/gel2mdt/credentials
     volumes:
       - .:/root/gel2mdt/
-      - ~/.vep:/root/.vep
+      - /home/genseqservadmin/.vep/:/root/.vep
       - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources/:/root/gel2mdt_cache
     depends_on:
       - db
@@ -92,7 +92,7 @@ services:
       - /etc/gel2mdt/credentials
     volumes:
       - .:/root/gel2mdt/
-      - ~/.vep:/root/.vep
+      - /home/genseqservadmin/.vep/:/root/.vep
       - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources/:/root/gel2mdt_cache
     depends_on:
       - db

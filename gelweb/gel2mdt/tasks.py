@@ -39,8 +39,6 @@ from bokeh.plotting import figure
 from django.core.mail import EmailMessage
 from reversion.models import Version, Revision
 from protocols.reports_6_0_0 import InterpretedGenome, InterpretationRequestRD, CancerInterpretationRequest, ClinicalReport
-<<<<<<< HEAD
-=======
 from django.utils import timezone
 import csv
 import xlsxwriter
@@ -49,7 +47,6 @@ from django.db.models import Sum
 import datetime
 from django.contrib.auth.models import User, Group
 from .sv_extraction.filter_sv import SVFiltration
->>>>>>> 2cff8d5... addded in sv extraction
 
 
 def get_gel_content(ir, ir_version):

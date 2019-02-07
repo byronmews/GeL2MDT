@@ -648,7 +648,7 @@ class UpdateDemographics(object):
                 proband.nhs_number = participant_demographics['nhs_num']
                 proband.surname = participant_demographics['surname']
                 proband.forename = participant_demographics['forename']
-                proband.date_of_birth = datetime.strptime(participant_demographics["date_of_birth"],
+                proband.date_of_birth = datetime.datetime.strptime(participant_demographics["date_of_birth"],
                                                                    "%Y/%m/%d").date()
                 proband.recruiting_disease = recruiting_disease
                 proband.gmc = self.clinician.hospital

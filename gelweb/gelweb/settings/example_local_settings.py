@@ -16,7 +16,7 @@ ALLOWED_HOSTS = ['localhost',
 DATABASES = {
     'default': {
         'ENGINE': '',
-        'NAME': 'gel2mdt',
+        'NAME': 'wl_gel2mdt',
         'USER': '',
         'PASSWORD': '',  # Need to set env var
         'HOST': '',  # IP of the dbserver

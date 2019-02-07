@@ -52,6 +52,7 @@ from .vep_utils.run_vep_batch import CaseVariant
 from bokeh.resources import CDN
 from bokeh.embed import components
 from bokeh.layouts import gridplot, row
+from datetime import datetime
 
 
 def register(request):
@@ -649,7 +650,7 @@ def edit_mdt(request, sample_type, mdt_id):
 
     gel_ir_list = GELInterpretationReport.objects.latest_cases_by_sample_type(
         sample_type=sample_type
-    )
+    ).prefetch_related(*['ir_family', 'ir_family__participant_family__proband'])
     mdt_instance = MDT.objects.get(id=mdt_id)
     mdt_reports = MDTReport.objects.filter(MDT=mdt_instance)
     reports_in_mdt = mdt_reports.values_list('interpretation_report', flat=True)
@@ -1218,8 +1219,8 @@ def genomics_england_report(request, report_id):
     cip_id = report.ir_family.ir_family_id.split('-')
     try:
         gel_content = get_gel_content(cip_id[0], cip_id[1])
-    except:
-        messages.add_message(request, 40, 'Not successful, please contact bioinformatics about this')
+    except ValueError:
+        messages.add_message(request, 40, 'No GEL report found for this case')
         return HttpResponseRedirect(f'/proband/{report_id}')
     return render(request, 'gel2mdt/gel_template.html', {'gel_content': gel_content})
 
@@ -1340,7 +1341,6 @@ def delete_case_alert(request, case_alert_id):
     case_alert_instance.delete()
     messages.add_message(request, 25, 'Alert Deleted')
     return redirect('case-alert', sample_type=sample_type)
-
 
 @login_required
 def run_sv_extraction(request, report_id):

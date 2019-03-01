@@ -134,12 +134,12 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
-        'django.request': {
+    'django.request': {
             'handlers': ['mail_admins'],
             'level': 'ERROR',
             'propagate': False,
         },
-        'gelweb.custom': {
+       'gelweb.custom': {
             'handlers': ['console', 'mail_admins'],
             'level': 'INFO',
         }

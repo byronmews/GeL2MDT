@@ -39,11 +39,11 @@ services:
     command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && jupyter notebook --generate-config -y && cd /root/gel2mdt/gelweb && python manage.py shell_plus --notebook"
     volumes:
       - .:/root/gel2mdt/
-      - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources:/root/gel2mdt_cache
+      - ~/gel2mdt_resources:/root/gel2mdt_cache
     env_file:
       - /etc/gel2mdt/credentials_wl
     ports:
-      - "8891:8888"
+      - "8899:8888"
     depends_on:
       - db
       - redis
@@ -78,8 +78,8 @@ services:
       - /etc/gel2mdt/credentials
     volumes:
       - .:/root/gel2mdt/
-      - ~/.vep:/root/.vep
-      - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources/:/root/gel2mdt_cache
+      - /home/genseqservadmin/.vep/:/root/.vep
+      - ~/gel2mdt_resources:/root/gel2mdt_cache
     depends_on:
       - db
       - redis
@@ -92,8 +92,8 @@ services:
       - /etc/gel2mdt/credentials
     volumes:
       - .:/root/gel2mdt/
-      - ~/.vep:/root/.vep
-      - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources/:/root/gel2mdt_cache
+      - /home/genseqservadmin/.vep/:/root/.vep
+      - ~/gel2mdt_resources:/root/gel2mdt_cache
     depends_on:
       - db
       - redis
@@ -101,11 +101,11 @@ services:
     build: .
     image: wl_gel2mdt_flower
     restart: always
-    command: bash -c "cd /root/gel2mdt/gelweb && celery flower -A gelweb --broker=redis://redis:6379 --port=5550"
-    ports:
-      - "5550:5550"
     volumes:
       - .:/root/gel2mdt/
+    command: bash -c "cd /root/gel2mdt/gelweb && celery flower -A gelweb --broker=redis://redis:6379 --port=5550"
+    ports:
+      - "5500:5550"
     depends_on:
       - db
       - redis
@@ -117,11 +117,8 @@ services:
     volumes:
       - /sessions
     ports:
-      - 8080:80
+      - 8088:80
     environment:
       - PMA_ARBITRARY=1
     depends_on:
       - db
-
-
-

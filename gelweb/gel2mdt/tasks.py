@@ -39,6 +39,14 @@ from bokeh.plotting import figure
 from django.core.mail import EmailMessage
 from reversion.models import Version, Revision
 from protocols.reports_6_0_0 import InterpretedGenome, InterpretationRequestRD, CancerInterpretationRequest, ClinicalReport
+from django.utils import timezone
+import csv
+import xlsxwriter
+from datetime import date
+from django.db.models import Sum
+import datetime
+from django.contrib.auth.models import User, Group
+from .sv_extraction.filter_sv import SVFiltration
 
 
 def get_gel_content(ir, ir_version):
@@ -50,9 +58,8 @@ def get_gel_content(ir, ir_version):
     :return: Beatitful soup version of the report
     '''
     # otherwise get uname and password from a file
-
     interpretation_reponse = PollAPI(
-        "cip_api", f'interpretation-request/{ir}/{ir_version}')
+        "cip_api", f'interpretation-request/{ir}/{ir_version}/')
     interp_json = interpretation_reponse.get_json_response()
     analysis_versions = []
     latest = None
@@ -86,7 +93,7 @@ def get_gel_content(ir, ir_version):
 
     analysis_panels = {}
 
-    panel_app_panel_query_version = 'https://bioinfo.extge.co.uk/crowdsourcing/WebServices/get_panel/{panelhash}/?version={version}'
+    panel_app_panel_query_version = 'https://panelapp.genomicsengland.co.uk/api/v1/panels/{panelhash}/?version={version}'
     if 'pedigree' in interp_json['interpretation_request_data']['json_request']:
         if interp_json['interpretation_request_data']['json_request']['pedigree']['analysisPanels']:
             for panel_section in interp_json['interpretation_request_data']['json_request']['pedigree']['analysisPanels']:
@@ -95,9 +102,12 @@ def get_gel_content(ir, ir_version):
                 analysis_panels[panel_name] = {}
                 panel_details = requests.get(panel_app_panel_query_version.format(panelhash=panel_name, version=version),
                                              verify=False).json()
-                analysis_panels[panel_name][panel_details['result']['SpecificDiseaseName']] = []
-                for gene in panel_details['result']['Genes']:
-                    analysis_panels[panel_name][panel_details['result']['SpecificDiseaseName']].append(gene['GeneSymbol'])
+                analysis_panels[panel_name][panel_details['name']] = []
+                try:
+                    for gene in panel_details['genes']:
+                        analysis_panels[panel_name][panel_details['name']].append(gene['gene_data']['gene_symbol'])
+                except KeyError:
+                    pass
 
     gene_panels = {}
     for panel, details in analysis_panels.items():
@@ -182,6 +192,41 @@ def panel_app(gene_panel, gp_version):
     return gene_panel_info
 
 
+def sv_extraction(writer, report_id):
+    '''
+    Takes the SV extraction package and ties it to a button
+    :param report_id:
+    :return: Writer if supp. file has filtered SVs.
+    '''
+    try:
+        report = GELInterpretationReport.objects.get(id=report_id)
+        ir, ir_version = report.ir_family.ir_family_id.split('-')
+        sv = SVFiltration(ir=ir, ir_version=ir_version, test_data=False)
+
+        filename = sv.filename
+        html_version = sv.case.html_version
+        sv_count = sv.filtered_structural_variants_count
+
+        # not all cases have an supp. file.
+        if filename is None:
+            raise ValueError('No SVs returned. Case does not have a supplementary html (eg. FFPE).')
+        # old v1.6 html sv table very different format to later versions.
+        elif html_version == "v1.6":
+            raise ValueError('No SVs returned. Cannot filter v1.6 htmls.')
+        elif sv_count == 0:
+            raise ValueError('No SVs returned. No case SVs found in SV filter list.')
+        else:
+            with open(f"output/{report.ir_family.ir_family_id}.supplementary.filtered_sv_table.csv") as f:
+                csv_reader = csv.reader(f, delimiter=',')
+                for row in csv_reader:
+                    writer.writerow(row)
+            return writer
+    except ValueError as e:
+        print(e)
+        raise
+
+
+
 @task
 def update_for_t3(report_id):
     '''
@@ -193,6 +238,42 @@ def update_for_t3(report_id):
     MultipleCaseAdder(sample_type=report.sample_type,
                       pullt3=True,
                       sample=report.ir_family.participant_family.proband.gel_id)
+
+
+@task
+def report_export_for_rakib():
+    rd_irs = GELInterpretationReport.objects.latest_cases_by_sample_type('raredisease')
+    cancer_irs = GELInterpretationReport.objects.latest_cases_by_sample_type('cancer')
+    output = open('GEL2MDT_export.csv', 'w')
+    output.write('CIP ID,GEL Participant ID,Case Status,Disease,Disease subtype,LDP,SampleType\n')
+    for q in rd_irs:
+        try:
+            output.write(f'{q.ir_family.ir_family_id},{q.ir_family.participant_family.proband.gel_id},'
+                         f'{q.get_case_status_display()},{q.ir_family.participant_family.proband.recruiting_disease},'
+                         f'{q.ir_family.participant_family.proband.disease_subtype},'
+                         f'{q.ir_family.participant_family.proband.gmc},RareDisease\n')
+        except Proband.DoesNotExist:
+            pass
+    for q in cancer_irs:
+        try:
+            output.write(f'{q.ir_family.ir_family_id},{q.ir_family.participant_family.proband.gel_id},'
+                         f'{q.get_case_status_display()},{q.ir_family.participant_family.proband.recruiting_disease},'
+                         f'{q.ir_family.participant_family.proband.disease_subtype},'
+                         f'{q.ir_family.participant_family.proband.gmc},Cancer\n')
+        except Proband.DoesNotExist:
+            pass
+    output.close()
+    subject, from_email, to = f'GeL2MDT Case Export', 'bioinformatics@gosh.nhs.uk', \
+                              'Rakib.Miah@gosh.nhs.uk'
+    text_content = f'Please see attached report'
+    try:
+        msg = EmailMessage(subject, text_content, from_email, [to])
+        msg.attach_file("GEL2MDT_export.csv")
+        msg.send()
+        os.remove('GEL2MDT_export.csv')
+    except Exception as e:
+        print(e)
+
 
 @task
 def case_alert_email():
@@ -215,7 +296,7 @@ def case_alert_email():
                     if report.ir_family.participant_family.proband.gel_id == str(case.gel_id):
                         matching_cases[s_type][case.id].append((report.id,
                                                                 report.ir_family.ir_family_id))
-                    sample_types[s_type] = True
+                        sample_types[s_type] = True
                 except Proband.DoesNotExist:
                     pass
 
@@ -237,33 +318,84 @@ def case_alert_email():
             pass
 
 @task
+def cases_not_completed_email():
+    all_mdts = MDT.objects.all()
+    workbook = xlsxwriter.Workbook("monthly_results.xlsx")
+    worksheet = workbook.add_worksheet('Summary')
+    months = {1: 'Jan', 2: 'Feb', 3: 'Mar', 4: 'Apr', 5: 'May', 6: 'June', 7: 'July', 8: 'Aug', 9: 'Sep', 10: 'Oct',
+              11: 'Nov', 12: 'Dec'}
+    years = ['2017', '2018', '2019']
+    month_count = 0
+    for year in years:
+        for month in months:
+            completed_cases = []
+            notcompleted_cases = []
+            worksheet.write(0, month_count, f"{year}_{months[month]}")
+            month_mdts = all_mdts.filter(date_of_mdt__year=year, date_of_mdt__month=month)
+            for mdt in month_mdts:
+                for report in mdt.mdtreport_set.all():
+                    if report.interpretation_report.case_status != 'C':
+                        notcompleted_cases.append(report)
+                    else:
+                        completed_cases.append(report)
+            worksheet.write(1, month_count, f"Completed Count: ")
+            worksheet.write(2, month_count, len(completed_cases))
+            worksheet.write(1, month_count + 1, f"Not Completed Count: ")
+            worksheet.write(2, month_count + 1, len(notcompleted_cases))
+            if notcompleted_cases:
+                worksheet.write(4, month_count + 1, 'Participant IDs')
+            row = 5
+            for case in notcompleted_cases:
+                try:
+                    worksheet.write(row, month_count + 1,
+                                    case.interpretation_report.ir_family.participant_family.proband.gel_id)
+                    row += 1
+                except Proband.DoesNotExist:
+                    pass
+            month_count += 2
+
+    workbook.close()
+    subject, from_email, to = f'GeL2MDT Monthly Closed Case Alert', 'bioinformatics@gosh.nhs.uk', \
+                              'GELTeam@gosh.nhs.uk'
+    text_content = f'Please see attached report'
+    try:
+        msg = EmailMessage(subject, text_content, from_email, [to])
+        msg.attach_file("monthly_results.xlsx")
+        msg.send()
+        os.remove('monthly_results.xlsx')
+    except Exception as e:
+        print(e)
+
+
+
+@task
 def update_report_email():
     '''
     Utility function which sends emails to GELTeam about last weeks updates
     :return:
     '''
-    from datetime import date
-    from django.db.models import Sum
     text_content = ''
     today = date.today()
-    import datetime
     week_ago = today - datetime.timedelta(days=7)
     for i, sample_type in enumerate(['raredisease', 'cancer']):
         listupdates = ListUpdate.objects.filter(update_time__gte=week_ago).filter(sample_type=sample_type)
         total_added = listupdates.aggregate(Sum('cases_added'))['cases_added__sum']
-        if total_added > 0:
-            text_content += f'{sample_type.title()} Update Report:\n\nTotal number of cases added: {total_added}\n\n'
-            text_content += f'Summary of Cases Added:\n'
-            text_content += f'CIPID\tGELID\tForename\tSurname\tClinician\tCenter\n'
-            for update in listupdates:
-                reports_added = update.reports_added.all()
-                for report in reports_added:
-                    text_content += f'{report.ir_family.ir_family_id}\t' \
-                                    f'{report.ir_family.participant_family.proband.gel_id}\t' \
-                                    f'{report.ir_family.participant_family.proband.forename}\t' \
-                                    f'{report.ir_family.participant_family.proband.surname}\t' \
-                                    f'{report.ir_family.participant_family.clinician}\t' \
-                                    f'{report.ir_family.participant_family.proband.gmc}\n'
+        if total_added:
+            if total_added > 0:
+                text_content += f'{sample_type.title()} Update Report:\n\nTotal number of cases added: {total_added}\n\n'
+                text_content += f'Summary of Cases Added:\n'
+                text_content += f'CIPID\tGELID\tForename\tSurname\tClinician\tCenter\n'
+                for update in listupdates:
+                    reports_added = update.reports_added.all()
+                    for report in reports_added:
+                        text_content += f'{report.ir_family.ir_family_id}\t' \
+                                        f'{report.ir_family.participant_family.proband.gel_id}\t' \
+                                        f'{report.ir_family.participant_family.proband.forename}\t' \
+                                        f'{report.ir_family.participant_family.proband.surname}\t' \
+                                        f'{report.ir_family.participant_family.clinician}\t' \
+                                        f'{report.ir_family.participant_family.proband.gmc}\n'
+            else:
+                text_content += f'No new cases were added for {sample_type.title()}\n'
         else:
             text_content += f'No new cases were added for {sample_type.title()}\n'
         text_content += '\n----------------------------------------------------------------------------------------\n\n'
@@ -284,7 +416,6 @@ def listupdate_email():
     Utility function which sends emails to admin about last nights update
     :return:
     '''
-    from datetime import date
     send = False
     bioinfo_content = 'Sample Type\tUpdate Time\tNo. Cases Added\tNo. Cases Updated\tError\n'
     for i, sample_type in enumerate(['raredisease', 'cancer']):
@@ -310,7 +441,7 @@ def update_cases():
     the database with new cases
     :return:
     '''
-    MultipleCaseAdder(sample_type='raredisease', pullt3=False, skip_demographics=False)
+    MultipleCaseAdder(sample_type='raredisease', bins=300, pullt3=False, skip_demographics=False)
     MultipleCaseAdder(sample_type='cancer', pullt3=False, skip_demographics=False)
 
 
@@ -621,7 +752,7 @@ class UpdateDemographics(object):
                 proband.nhs_number = participant_demographics['nhs_num']
                 proband.surname = participant_demographics['surname']
                 proband.forename = participant_demographics['forename']
-                proband.date_of_birth = datetime.strptime(participant_demographics["date_of_birth"],
+                proband.date_of_birth = datetime.datetime.strptime(participant_demographics["date_of_birth"],
                                                                    "%Y/%m/%d").date()
                 proband.recruiting_disease = recruiting_disease
                 proband.gmc = self.clinician.hospital

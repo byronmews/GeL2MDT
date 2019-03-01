@@ -116,8 +116,4 @@ WeasyPrint==0.42.3
 webencodings==0.5.1
 widgetsnbextension==3.2.0
 xhtml2pdf==0.2.2
-<<<<<<< HEAD
 XlsxWriter==0.7.3
-=======
-XlsxWriter==0.7.3
->>>>>>> e69c739e6f299211487215242d6a0672ccab6e7f

@@ -64,28 +64,25 @@ def get_gel_content(ir, ir_version):
         except ValueError as e:
             latest = 1
 
-    try:
-        if latest == 1:
-            print('latest',  1)
-            html_report = PollAPI(
-                "cip_api_for_report", f"ClinicalReport/{ir}/{ir_version}/{latest}"
-            )
-            gel_content = html_report.get_json_response(content=True)
-        else:
-            while latest > 0:
-                print('latest', latest)
-                html_report = PollAPI(
-                    "cip_api_for_report", f"ClinicalReport/{ir}/{ir_version}/{latest}"
-                )
-                gel_content = html_report.get_json_response(content=True)
-                gel_json_content = json.loads(gel_content)
-                if gel_json_content['detail'].startswith('Not found') or gel_json_content['detail'].startswith(
-                        'Method \"GET\" not allowed'):
-                    latest -= 1
+    loop_over_reports = True
+    while loop_over_reports:
+        print('latest', latest)
+        html_report = PollAPI(
+            "cip_api", f"clinical-report/{ir}/{ir_version}/{latest}"
+        )
+        gel_content = html_report.get_json_response(content=True)
+        try:
+            gel_json_content = json.loads(gel_content)
+            if gel_json_content['detail'].startswith('Not found') or gel_json_content['detail'].startswith(
+                    'Method \"GET\" not allowed'):
+                if latest == 1:
+                    raise ValueError('No Clinical Report found for this case')
                 else:
-                    break
-    except JSONDecodeError as e:
-        print('JSONDecodeError')
+                    latest -= 1
+            else:
+                loop_over_reports = False
+        except JSONDecodeError:
+            loop_over_reports = False
 
     analysis_panels = {}
 
@@ -503,7 +500,7 @@ class UpdateDemographics(object):
 
             if 'name' in clinician_details and 'hospital' in clinician_details:
                 print("Found details for", self.report.ir_family.participant_family.proband.gel_id, clinician_details)
-
+                
                 # several cases of null value within labkey 'consultant_details_hospital_of_responsible_consultant'
                 if clinician_details['hospital'] == None:
                     print("Labkey clinician hospital value is null, changing to 'Not provided'")

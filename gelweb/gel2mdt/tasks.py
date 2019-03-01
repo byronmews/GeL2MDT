@@ -631,7 +631,7 @@ class UpdateDemographics(object):
 
             if 'name' in clinician_details and 'hospital' in clinician_details:
                 print("Found details for", self.report.ir_family.participant_family.proband.gel_id, clinician_details)
-
+                
                 # several cases of null value within labkey 'consultant_details_hospital_of_responsible_consultant'
                 if clinician_details['hospital'] == None:
                     print("Labkey clinician hospital value is null, changing to 'Not provided'")

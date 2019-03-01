@@ -20,11 +20,11 @@ services:
     restart: always
     build:
       context: .
-    command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && cd /root/gel2mdt/gelweb && gunicorn gelweb.wsgi --workers=9 -t 90 -b 0.0.0.0:8000"
+    command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && cd /root/gel2mdt/gelweb && gunicorn gelweb.wsgi --workers=9 -t 90 -b 0.0.0.0:8001"
     volumes:
       - .:/root/gel2mdt/
       - /home/genseqservadmin/.vep/:/root/.vep
-      - ~/gel2mdt_resources:/root/gel2mdt_cache
+      - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources:/root/gel2mdt_cache
     env_file:
       - /etc/gel2mdt/credentials_wl
     depends_on:

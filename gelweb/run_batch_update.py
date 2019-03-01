@@ -1,4 +1,5 @@
 """Copyright (c) 2018 Great Ormond Street Hospital for Children NHS Foundation
+
 Trust & Birmingham Women's and Children's NHS Foundation Trust
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of
@@ -21,6 +22,6 @@ SOFTWARE.
 """
 from gel2mdt.database_utils.multiple_case_adder import MultipleCaseAdder
 
-MultipleCaseAdder(sample_type='cancer', test_data=False, skip_demographics=False, pullt3=False)
-MultipleCaseAdder(sample_type='raredisease', head=None, test_data=False, skip_demographics=False, pullt3=False, bins=500)
-
+#MultipleCaseAdder(sample_type='cancer', test_data=False, skip_demographics=False, pullt3=False)
+MultipleCaseAdder(sample_type='raredisease', test_data=False, skip_demographics=False, pullt3=False)
+#MultipleCaseAdder(sample='120000627', sample_type='raredisease', head=None, test_data=False, skip_demographics=False, pullt3=False, bins=500)

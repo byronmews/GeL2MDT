@@ -664,7 +664,7 @@ class UpdateDemographics(object):
                     return None
 
 
-    def update_demographics_v2(self):
+    def update_demographics(self):
         participant_demographics = {
             "surname": 'unknown',
             "forename": 'unknown',
@@ -776,114 +776,6 @@ class UpdateDemographics(object):
                     tried_all_gmc_labkeys = True
                     return None
 
-
-    def update_demographics(self):
-        participant_demographics = {
-            "surname": 'unknown',
-            "forename": 'unknown',
-            "date_of_birth": '2011/01/01',  # unknown but needs to be in date format
-            "nhs_num": 'unknown',
-        }
-
-        if self.report.sample_type == 'cancer':
-            schema = 'gel_cancer'
-            query_name = 'cancer_registration'
-        elif self.report.sample_type == 'raredisease':
-            schema = 'gel_rare_diseases'
-            query_name = 'rare_diseases_registration'
-
-        labkey_url_index = 0
-        tried_all_gmc_labkeys = False
-        server_context_list = [self.server_context_ntgmc, self.server_context_wlgmc]
-
-        while not tried_all_gmc_labkeys:
-            # try most probable labkey url first
-            results = lk.query.select_rows(
-                server_context=server_context_list[labkey_url_index],
-                schema_name=schema,
-                query_name='participant_identifier',
-                filter_array=[
-                    lk.query.QueryFilter(
-                        'participant_id', self.report.ir_family.participant_family.proband.gel_id, 'in')
-                ]
-            )
-            try:
-                try:
-                    participant_demographics["surname"] = results['rows'][0].get(
-                        'surname')
-                except IndexError as e:
-                    raise
-                try:
-                    participant_demographics["forename"] = results['rows'][0].get(
-                        'forenames')
-                except IndexError as e:
-                    raise
-                try:
-                    participant_demographics["date_of_birth"] = results['rows'][0].get(
-                        'date_of_birth').split(' ')[0]
-                except IndexError as e:
-                    raise
-
-                try:
-                    if self.report.sample_type == 'raredisease':
-                        if results['rows'][0].get('person_identifier_type').upper() == "NHSNUMBER":
-                            participant_demographics["nhs_num"] = results['rows'][0].get(
-                                'person_identifier')
-                    elif self.report.sample_type == 'cancer':
-                        participant_demographics["nhs_num"] = results['rows'][0].get(
-                            'person_identifier')
-                except IndexError as e:
-                    raise
-            except Exception:
-                pass
-
-            recruiting_disease = None
-            if self.report.sample_type == 'raredisease':
-                schema_name = 'gel_rare_diseases',
-                query_name = 'rare_diseases_diagnosis'
-            elif self.report.sample_type == 'cancer':
-                schema_name = 'gel_cancer',
-                query_name = 'cancer_diagnosis'
-            # TODO:this is a bug, should not use lk for this
-            results = lk.query.select_rows(
-                server_context=server_context_list[labkey_url_index],
-                schema_name=schema_name,
-                query_name=query_name,
-                filter_array=[
-                    lk.query.QueryFilter('participant_identifiers_id',
-                                         self.report.ir_family.participant_family.proband.gel_id, 'eq')
-                ]
-            )
-            try:
-                if self.report.sample_type == 'raredisease':
-                    recruiting_disease = results['rows'][0].get('gel_disease_information_specific_disease', None)
-                elif self.report.sample_type == 'cancer':
-                    recruiting_disease = results['rows'][0].get('diagnosis_icd_code', None)
-            except IndexError as e:
-                pass
-
-            if participant_demographics['surname'] != 'unknown' and participant_demographics['nhs_num'] != 'unknown':
-                proband = self.report.ir_family.participant_family.proband
-                proband.nhs_number = participant_demographics['nhs_num']
-                proband.surname = participant_demographics['surname']
-                proband.forename = participant_demographics['forename']
-                proband.date_of_birth = datetime.datetime.strptime(participant_demographics["date_of_birth"],
-                                                                   "%Y/%m/%d").date()
-                proband.recruiting_disease = recruiting_disease
-                proband.gmc = self.clinician.hospital
-                proband.save()
-                print(participant_demographics)
-                tried_all_gmc_labkeys = True # skip as other labkey url not required now
-                return proband
-            else:
-                if labkey_url_index != 1:
-                    print("Demographics not found in labkey path:", server_context_list[labkey_url_index]._container_path)
-                    labkey_url_index += 1
-                else:
-                    print("Demographics not found in labkey path:", server_context_list[labkey_url_index]._container_path)
-                    print("Cannot find case demographics in labkey")
-                    tried_all_gmc_labkeys = True
-                    return None
 
 
 class UpdaterFromStorage:

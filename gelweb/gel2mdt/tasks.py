@@ -725,18 +725,9 @@ class UpdateDemographics(object):
                 pass
 
             recruiting_disease = None
-            if self.report.sample_type == 'raredisease':
-                schema_name = 'gel_rare_diseases',
-                query_name = 'rare_diseases_diagnosis'
-            elif self.report.sample_type == 'cancer':
-                schema_name = 'gel_cancer',
-                query_name = 'cancer_diagnosis'
-            # TODO:this is a bug, should not use lk for this
-            print("V2")
-
+            # stop using diagnosis from lk, use json file from cipapi
             report_id, version = str(self.report).split(' ')
             ir, ir_version = report_id.split('-')
-
             try:
                 request_poll = PollAPI(
                     # instantiate a poll of CIPAPI for a given case json
@@ -749,7 +740,7 @@ class UpdateDemographics(object):
                 interpretation_request_data = response['interpretation_request_data']
                 recruiting_disease = interpretation_request_data['json_request']['cancerParticipant']['primaryDiagnosisDisease']
                 recruiting_disease = recruiting_disease[0]
-
+            
             except ValueError as e:
                 print(e)
 

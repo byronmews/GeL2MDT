@@ -72,7 +72,7 @@ SOFTWARE.
                                                     </label>
                                                     <label class="btn btn-success">
                                                         <input type="radio" name="caseType" id="casetype_pilot" autocomplete="off" value="true">
-                                                        Pilot
+                                                        West London
                                                     </label>
                                                 </div>
                                             </td>
@@ -375,7 +375,7 @@ function redrawCaseType(table,caseType) {
 
     // warn users of pilot mode
     if (caseType == 'true') {
-        $('#pilotWarning').html('<div class="alert alert-danger" role="alert"><strong>Only displaying pilot cases</strong></div>');
+        $('#pilotWarning').html('<div class="alert alert-danger" role="alert"><strong>Only displaying West London cases</strong></div>');
     } else if (caseType == '') {
         $('#pilotWarning').html('<div class="alert alert-warning" role="alert"><strong>Including pilot cases.</strong></div>');
     } else {

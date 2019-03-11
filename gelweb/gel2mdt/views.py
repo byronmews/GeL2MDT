@@ -1354,12 +1354,12 @@ def audit(request, sample_type):
         status_counts = [case_status_breakdown.get(f, 0) for f in status_choices]
         main_study_count_plot = create_bokeh_barplot(status_names, status_counts, 'Main Study Status Count')
 
-        # Pilot study status plot
+        # Pilot study status plot TODO: using for WL cases split on WL instance
         case_status_breakdown = queryset.filter(sample_type=sample_type, pilot_case=True).values(
             'case_status').annotate(Count('case_status'))
         case_status_breakdown = {item['case_status']: item['case_status__count'] for item in case_status_breakdown}
         status_counts = [case_status_breakdown.get(f, 0) for f in status_choices]
-        pilot_study_count_plot = create_bokeh_barplot(status_names, status_counts, 'Pilot Study Status Count')
+        pilot_study_count_plot = create_bokeh_barplot(status_names, status_counts, 'West London Study Status Count')
         plots = row([main_study_count_plot, pilot_study_count_plot])
     script, div = components(plots, CDN)
     return render(request, 'gel2mdt/audit.html', {'script': script,

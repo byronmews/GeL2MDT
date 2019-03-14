@@ -4,5 +4,3 @@
 [submodule "gelweb/gel2mdt/sv_extraction"]
 	path = gelweb/gel2mdt/sv_extraction
 	url = https://github.com/byronmews/sv_extraction.git
-	branch = gel2mdt_version_dev
-

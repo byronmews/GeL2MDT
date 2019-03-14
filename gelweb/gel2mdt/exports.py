@@ -50,7 +50,6 @@ def write_mdt_export(mdt_instance, mdt_reports):
         failed_reports_formatted = ' '.join(list(set(failed_reports)))
         raise ValueError(f"Transcripts have not been selected for the following reports: {failed_reports_formatted}")
 
-    # create in-memory output file
     output = io.BytesIO()
     workbook = xlsxwriter.Workbook(output)
     worksheet = workbook.add_worksheet()

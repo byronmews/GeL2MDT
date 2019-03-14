@@ -43,7 +43,7 @@ services:
     env_file:
       - /etc/gel2mdt/credentials_wl
     ports:
-      - "8899:8888"
+      - "8900:8888"
     depends_on:
       - db
       - redis
@@ -105,7 +105,7 @@ services:
       - .:/root/gel2mdt/
     command: bash -c "cd /root/gel2mdt/gelweb && celery flower -A gelweb --broker=redis://redis:6379 --port=5550"
     ports:
-      - "5500:5550"
+      - "5550:5550"
     depends_on:
       - db
       - redis
@@ -117,7 +117,7 @@ services:
     volumes:
       - /sessions
     ports:
-      - 8088:80
+      - 8089:80
     environment:
       - PMA_ARBITRARY=1
     depends_on:

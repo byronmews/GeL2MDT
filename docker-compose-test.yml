@@ -23,7 +23,7 @@ services:
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=root
-      - MYSQL_DATABASE=wl_gel2mdt_db
+      - MYSQL_DATABASE=wl_gel2mdt
       - MYSQL_USER=paddy
     env_file:
       - /etc/gel2mdt/credentials_wl

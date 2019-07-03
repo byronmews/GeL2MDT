@@ -42,7 +42,7 @@ from .forms import *
 from .models import *
 from .filters import *
 from .tasks import *
-from .exports import write_mdt_outcome_template, write_mdt_export, write_gtab_template
+from .exports import write_mdt_outcome_template, write_mdt_export, write_gtab_template, write_npf_template
 from .decorators import user_is_clinician
 
 from .api.api_views import *
@@ -1286,17 +1286,28 @@ def report(request, report_id, outcome):
     else:
         reported_variants = None
 
-    return render_to_pdf_response(
-        request=request,
-        template='gel2mdt/technical_information.html',
-        context={
-            'outcome': outcome,
-            'build': genome_build,
-            'report': report,
-            'reported_variants': reported_variants,
-            'panels': panel_genes
-        }
-    )
+    try:
+        document = write_npf_template(report)
+        f = BytesIO()
+        document.save(f)
+        length = f.tell()
+        f.seek(0)
+
+        response = HttpResponse(
+            f.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        )
+
+        filename = '{}_{}_{}.docx'.format(report.ir_family.participant_family.proband.surname,
+                                            report.ir_family.participant_family.proband.forename,
+                                            report.ir_family.ir_family_id,)
+        response['Content-Disposition'] = 'attachment; filename=' + filename
+        response['Content-Length'] = length
+        return response
+    except Exception as e:
+        message = str(e)
+        messages.add_message(request, 40, message)
+    return redirect('proband-view', report_id=report_id)
 
 
 @login_required

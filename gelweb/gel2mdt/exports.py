@@ -29,6 +29,7 @@ from django.conf import settings
 import os
 from docx.shared import Pt, Inches, RGBColor, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from datetime import datetime
 
 
 def write_mdt_export(mdt_instance, mdt_reports):
@@ -748,5 +749,155 @@ def write_gtab_template(report):
     run = table.rows[0].cells[1].paragraphs[0].add_run('Date: ')
     run = table.rows[1].cells[0].paragraphs[0].add_run('Checked by:')
     run = table.rows[1].cells[1].paragraphs[0].add_run('Date: ')
+
+    return document
+
+
+def write_npf_template(report):
+    '''
+    Given a report, write a No Primary Findings (NPF) report
+    :param report: GELInterpretation instance
+    :return: docx document to be exported
+    '''
+    print("Report:", report)
+    
+    # template with headers, page number and custom Grid Table Plain setup
+    template_file = os.path.join(os.getcwd(), "gel2mdt/exports_templates/{filename}".format(filename='npf_glh_negative_report_template.docx'))
+    document = Document(docx=template_file) 
+
+    sections = document.sections
+    for section in sections:
+        section.left_margin = Inches(0.5)
+        section.right_margin = Inches(0.5)
+
+    style = document.styles['Normal']
+    font = style.font
+    font.name = 'Arial'
+    font.size = Pt(10.5)
+
+    # Demographics as a custom table style created in the docx template.
+    # Setup gender and pronoun for text. If no gender, highlight in template
+    try:
+        clinician = report.ir_family.participant_family.clinician.name
+        # using gender pronoun in text
+        sex = report.ir_family.participant_family.proband.sex
+
+        if not (sex is None or sex == 'unknown'):
+            if sex.lower() == 'male':
+                gender_pronoun = 'his'
+                sex = list(report.ir_family.participant_family.proband.sex)[0].upper()
+            elif sex.lower() == 'female':
+                gender_pronoun = 'her'
+                sex = list(report.ir_family.participant_family.proband.sex)[0].upper()
+        else:
+            sex = '<--Unknown-->'
+            gender_pronoun = '<--his/her-->'
+    except ValueError as e:
+        print(e)
+        raise
+
+    # export letter date stamp
+    now = datetime.now()
+
+    # negative report function is avaliable for both sample types, this is
+    # used within text for any future cancer requirement.
+    if report.sample_type == 'raredisease':
+        sample_type = 'rare disease'
+    else:
+        sample_type = 'cancer'
+    
+    table = document.add_table(rows=5, cols=2, style='Grid Table Plain')
+    run = table.rows[0].cells[0].paragraphs[0].add_run(
+        f'Dr {clinician}')
+    run = table.rows[0].cells[1].paragraphs[0].add_run(
+        f'Patient Name:\t\t  ')
+    run.bold = True
+    run = table.rows[0].cells[1].paragraphs[0].add_run(
+        f'{report.ir_family.participant_family.proband.forename} '
+        f'{report.ir_family.participant_family.proband.surname}')
+    run = table.rows[1].cells[1].paragraphs[0].add_run(
+        f'Date of Birth / Gender: ')
+    run.bold = True
+    run = table.rows[1].cells[1].paragraphs[0].add_run(
+        f'{report.ir_family.participant_family.proband.date_of_birth.date().strftime("%d-%m-%Y")} / '
+        f'{sex}')
+    run = table.rows[2].cells[1].paragraphs[0].add_run(
+        f'NHS number:\t\t  ')
+    run.bold = True
+    run = table.rows[2].cells[1].paragraphs[0].add_run(
+        f'{report.ir_family.participant_family.proband.nhs_number}')
+    run = table.rows[3].cells[1].paragraphs[0].add_run(
+        f'GEL ID:\t\t  ')
+    run.bold = True
+    run = table.rows[3].cells[1].paragraphs[0].add_run(
+        f'{report.ir_family.ir_family_id} / '
+        f'{report.ir_family.participant_family.proband.gel_id}')
+      
+    # main text
+    paragraph = document.add_paragraph()
+    run = paragraph.add_run('\nNorth Thames Genomic Medicine Centre\n')
+    run.font.size = Pt(13)
+    run.bold = True
+    run = paragraph.add_run('100,000 Genomics Project Feedback\n')
+    run.font.size = Pt(12)
+    paragraph.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run.bold = False
+
+    paragraph = document.add_paragraph()
+    run = paragraph.add_run(
+        f'Date: '
+        f'{now.strftime("%d/%m/%Y")}\n\n\n')
+    
+    # catch clinician without full name (forename+surname)
+    if ' ' in clinician:
+        clinician_surname = clinician.rsplit(' ', 1)[1]
+    else:
+        clinician_surname = clinician
+
+    run = paragraph.add_run(
+        f'Dear Dr {clinician_surname},')
+
+    paragraph = document.add_paragraph(
+        f'The above named patient and their family are participating in the 100,000 Genomics Project to '
+        f'find the cause of {report.ir_family.participant_family.proband.forename}\'s {sample_type}. '
+        f'Whole genome sequencing* has been completed by Genomics England and the primary analysis has not '
+        f'identified any underlying genetic cause for {gender_pronoun} clinical presentation.')
+    
+    paragraph = document.add_paragraph(
+        f'Please refer to the attached Genomics England report for information on the genes included in the primary '
+        f'analysis. If panels appropriate to the patient phenotype have not been applied please contact the laboratory.')
+
+    paragraph = document.add_paragraph(
+        f'The genome sequencing data will be stored. Cases with new HPO terms, changing clinical need and those not '
+        f'analysed for copy number variants (CNVs) will be re-analysed in the future as part of the on-going 100,000 '
+        f'Genomes Project. If this identifies a possible genetic diagnosis we will re-contact you.')
+
+    paragraph = document.add_paragraph(
+        f'The analysis reported to date does not include analysis for ‘additional findings’ unrelated to the '
+        f'clinical presentation. The results of the additional findings analysis will be reported separately '
+        f'and at a later date to participants who have consented to receive these.')
+
+    paragraph = document.add_paragraph()
+    run = paragraph.add_run(
+        f'Please can you thank this family for their continuing participation in the 100,000 Genomes Project. '
+        f'This letter should be stored in {report.ir_family.participant_family.proband.forename}\'s medical records '
+        f'as a record of the result ')
+    run = paragraph.add_run('and the outcome fed back to the patient by the referring clinician.\n').bold = True
+
+    paragraph = document.add_paragraph()
+    run = paragraph.add_run(
+        f'Authorised by:\n\n\n\n')
+
+    run = paragraph.add_run(
+        f'GEL.Team@gosh.nhs.uk\n\n')
+
+    paragraph = document.add_paragraph()
+    run = paragraph.add_run(
+        f'* The whole genome sequencing analysis focussed on a panel of genes known to cause this patient’s condition '
+        f'and is able to detect single nucleotide variants and small insertions/deletions. The analysis does not currently '
+        f'detect larger copy number variants, deep intronic variants, structural abnormalities or variants on the '
+        f'Y chromosome. Development and validation of software tools to identify such variants is in progress.'
+    )
+    run.font.size = Pt(10)
 
     return document

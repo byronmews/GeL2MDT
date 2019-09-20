@@ -610,7 +610,7 @@ class UpdateDemographics(object):
         elif self.report.sample_type == 'raredisease':
             schema = 'gel_rare_diseases'
             query_name = 'rare_diseases_registration'
-            query_filter_id = 'family_id' # rare disease specific id
+            query_filter_id = 'participant_identifiers_id' # rare disease specific id
 
         all_gmc_labkeys_attempted = False
         labkey_url_index = 0
@@ -624,8 +624,8 @@ class UpdateDemographics(object):
                 query_name=query_name,
                 filter_array=[
                     lk.query.QueryFilter(query_filter_id,
-                                         self.report.ir_family.participant_family.gel_family_id,
-                                         'contains')
+                                         self.report.ir_family.participant_family.proband.gel_id,
+                                         'eq')
                 ]
             )
             try:

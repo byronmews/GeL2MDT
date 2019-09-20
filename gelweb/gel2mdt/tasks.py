@@ -652,10 +652,15 @@ class UpdateDemographics(object):
                         hospital = clinician_details['hospital']
                     )
                 else:
-                    clinician, saved = Clinician.objects.get_or_create(
+                    clinician = Clinician.objects.filter(
                         name=clinician_details['name'],
-                        hospital = clinician_details['hospital'] # instance of MultipleObjectsReturned 
-                    )
+                        hospital = clinician_details['hospital']).first() # else MultipleObjectsReturned if clinician as upper and lower case
+
+                    if clinician is None:
+                        clinician = Clinician.objects.create(
+                            name=clinician_details['name'],
+                            hospital = clinician_details['hospital'])
+                
                 self.clinician = clinician
                 family = self.report.ir_family.participant_family
                 family.clinician = clinician
@@ -733,25 +738,26 @@ class UpdateDemographics(object):
             except Exception:
                 pass
 
-            recruiting_disease = None
-            # stop using diagnosis from lk, use json file from cipapi
-            report_id, version = str(self.report).split(' ')
-            ir, ir_version = report_id.split('-')
-            try:
-                request_poll = PollAPI(
-                    # instantiate a poll of CIPAPI for a given case json
-                    "cip_api",
-                    "interpretation-request/{id}/{version}?reports_v6=true".format(
-                        id=ir,
-                        version=ir_version))
+            if self.report.sample_type == 'cancer':
+                recruiting_disease = None
+                # stop using diagnosis from lk, use json file from cipapi
+                report_id, version = str(self.report).split(' ')
+                ir, ir_version = report_id.split('-')
+                try:
+                    request_poll = PollAPI(
+                        # instantiate a poll of CIPAPI for a given case json
+                        "cip_api",
+                        "interpretation-request/{id}/{version}?reports_v6=true".format(
+                            id=ir,
+                            version=ir_version))
 
-                response = request_poll.get_json_response()
-                interpretation_request_data = response['interpretation_request_data']
-                recruiting_disease = interpretation_request_data['json_request']['cancerParticipant']['primaryDiagnosisDisease']
-                recruiting_disease = recruiting_disease[0]
-            
-            except ValueError as e:
-                print(e)
+                    response = request_poll.get_json_response()
+                    interpretation_request_data = response['interpretation_request_data']
+                    recruiting_disease = interpretation_request_data['json_request']['cancerParticipant']['primaryDiagnosisDisease']
+                    recruiting_disease = recruiting_disease[0]
+                
+                except ValueError as e:
+                    print(e)
 
             if participant_demographics['surname'] != 'unknown' and participant_demographics['nhs_num'] != 'unknown':
                 proband = self.report.ir_family.participant_family.proband
@@ -760,7 +766,8 @@ class UpdateDemographics(object):
                 proband.forename = participant_demographics['forename']
                 proband.date_of_birth = datetime.datetime.strptime(participant_demographics["date_of_birth"],
                                                                    "%Y/%m/%d").date()
-                proband.recruiting_disease = recruiting_disease
+                if self.report.sample_type == 'cancer':
+                    proband.recruiting_disease = recruiting_disease
                 proband.gmc = self.clinician.hospital
                 proband.save()
                 print(participant_demographics)

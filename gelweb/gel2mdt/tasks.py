@@ -246,7 +246,7 @@ def panel_app(gene_panel, gp_version):
     :return: Dict with gene list and len of gene list
     '''
     gene_list = []
-    panel_app_panel_query_version = 'https://bioinfo.extge.co.uk/crowdsourcing/WebServices/get_panel/{gene_panel}/?version={gp_version}'
+    panel_app_panel_query_version = 'https://panelapp.genomicsengland.co.uk/WebServices/get_panel/{panelhash}/?version={version}'
     panel_details = requests.get(
         panel_app_panel_query_version.format(gene_panel=gene_panel, gp_version=gp_version), verify=False).json()
 

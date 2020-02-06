@@ -1371,7 +1371,7 @@ def audit(request, sample_type):
             'case_status').annotate(Count('case_status'))
         case_status_breakdown = {item['case_status']: item['case_status__count'] for item in case_status_breakdown}
         status_counts = [case_status_breakdown.get(f, 0) for f in status_choices]
-        pilot_study_count_plot = create_bokeh_barplot(status_names, status_counts, 'North Thames managed West London cases')
+        pilot_study_count_plot = create_bokeh_barplot(status_names, status_counts, 'West London managed cases')
         plots = row([main_study_count_plot, pilot_study_count_plot])
     script, div = components(plots, CDN)
     return render(request, 'gel2mdt/audit.html', {'script': script,

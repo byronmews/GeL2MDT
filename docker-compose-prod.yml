@@ -9,8 +9,10 @@ services:
     image: nginx:latest
     ports:
       - "8001:8001"
+      - "8003:8003"
     volumes:
       - ./Docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./Docker/nginx/ssl:/etc/nginx/ssl
       - ./gelweb/gelweb/static_files:/static
     depends_on:
       - web
@@ -59,16 +61,6 @@ services:
       - /etc/gel2mdt/credentials_wl
     volumes:
       - /home/genseqservadmin/WL_GEL2MDT/gel2mdt_resources/gel2mdt_db:/var/lib/mysql
-#  db:
-#    image: postgres:10
-#    restart: always
-#    environment:
-#      - POSTGRES_DB=gel2mdt_db
-#      - POSTGRES_USER=paddy
-#    env_file:
-#      - /etc/gel2mdt/credentials
-#    volumes:
-#      - ~/gel2mdt_resources/gel2mdt_db:/var/lib/postgresql/data
   celery:
     build: .
     restart: always

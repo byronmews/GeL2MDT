@@ -18,7 +18,7 @@ services:
       - web
       - redis
   web:
-    image: wl_gel2mdt_web
+    image: gel2mdt_web:0.8.1
     restart: always
     build:
       context: .
@@ -33,7 +33,7 @@ services:
       - db
       - redis
   jupyter:
-    image: wl_gel2mdt_jupyter
+    image: gel2mdt_jupyter:0.8.1
     build: .
     restart: always
     build:
@@ -64,7 +64,7 @@ services:
   celery:
     build: .
     restart: always
-    image: wl_gel2mdt_celery
+    image: gel2mdt_celery:0.8.1
     command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && cd /root/gel2mdt/gelweb && celery -A gelweb worker -l info"
     env_file:
       - /etc/gel2mdt/credentials_wl
@@ -77,7 +77,7 @@ services:
       - redis
   celery-beat:
     build: .
-    image: wl_gel2mdt_celery-beat
+    image: gel2mdt_celery-beat:0.8.1
     restart: always
     command: bash -c ". /root/gel2mdt/Docker/startup_script.sh && cd /root/gel2mdt/gelweb && rm -f celerybeat.pid && celery -A gelweb beat -l info"
     env_file:
@@ -91,7 +91,7 @@ services:
       - redis
   flower:
     build: .
-    image: wl_gel2mdt_flower
+    image: gel2mdt_flower:0.8.1
     restart: always
     volumes:
       - .:/root/gel2mdt/
